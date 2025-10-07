@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#42A5F5"/>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Controle Remoto Holyrics</title>
+    <style>
+        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f0f0; margin: 0; }
+        h1 { color: #333; }
+        #status { font-size: 1em; margin-bottom: 20px; padding: 10px; border-radius: 5px; }
+        .status-disconnected { background-color: #ffcdd2; color: #c62828; }
+        .status-connected { background-color: #c8e6c9; color: #2e7d32; }
+        .controls { display: flex; gap: 20px; }
+        button {
+            width: 150px;
+            height: 80px;
+            font-size: 1.5em;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            transition: transform 0.1s;
+        }
+        button:active { transform: scale(0.95); }
+        #prevBtn { background-color: #42A5F5; } /* Azul */
+        #nextBtn { background-color: #66BB6A; } /* Verde */
+    </style>
+</head>
+<body>
+    <h1>Controle de Mídia Holyrics</h1>
+    <div id="status" class="status-disconnected">Desconectado</div>
+
+    <div class="controls">
+        <button id="prevBtn">Anterior</button>
+        <button id="nextBtn">Próximo</button>
+    </div>
+
+    <script>
+        // IMPORTANTE: Substitua 'localhost' pelo IP ou domínio do seu servidor.
+        const SERVER_URL = 'ws://localhost:8080';
+
+        const prevButton = document.getElementById('prevBtn');
+        const nextButton = document.getElementById('nextBtn');
+        const statusDiv = document.getElementById('status');
+        let ws;
+
+        function connect() {
+            ws = new WebSocket(SERVER_URL);
+
+            ws.onopen = function() {
+                console.log('Conectado ao servidor!');
+                statusDiv.textContent = 'Conectado';
+                statusDiv.className = 'status-connected';
+            };
+
+            ws.onmessage = function(event) {
+                console.log('Mensagem recebida do servidor (provavelmente de outro cliente):', event.data);
+                // Não precisa fazer nada aqui, o frontend só envia comandos.
+            };
+
+            ws.onclose = function() {
+                console.log('Desconectado do servidor. Tentando reconectar em 3 segundos...');
+                statusDiv.textContent = 'Desconectado - Tentando reconectar...';
+                statusDiv.className = 'status-disconnected';
+                setTimeout(connect, 3000); // Tenta reconectar
+            };
+
+            ws.onerror = function(error) {
+                console.error('Erro no WebSocket:', error);
+                ws.close(); // Isso vai acionar o 'onclose' para tentar reconectar.
+            };
+        }
+
+        prevButton.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('PREV_SLIDE');
+                console.log('Comando PREV_SLIDE enviado.');
+            } else {
+                console.log('Não conectado para enviar comando.');
+            }
+        });
+
+        nextButton.addEventListener('click', () => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send('NEXT_SLIDE');
+                console.log('Comando NEXT_SLIDE enviado.');
+            } else {
+                console.log('Não conectado para enviar comando.');
+            }
+        });
+
+        // Inicia a primeira tentativa de conexão
+        connect();
+    </script>
+    <script>
+        // Registra o Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js').then(registration => {
+                    console.log('Service Worker registrado com sucesso:', registration);
+                }).catch(registrationError => {
+                    console.log('Falha ao registrar o Service Worker:', registrationError);
+                });
+            });
+        }
+    </script>
+</body>
+</html>

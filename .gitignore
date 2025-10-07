@@ -1,0 +1,11 @@
+# Dependências do Node.js
+/node_modules
+
+# Arquivos de log
+logs
+*.log
+npm-debug.log*
+
+# Arquivos de sistema operacional
+.DS_Store
+Thumbs.db

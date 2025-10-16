@@ -2,108 +2,175 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Controle - Holyrics</title>
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="#42A5F5"/>
+    <meta name="theme-color" content="#1e1e1e"/>
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <title>Controle Remoto Holyrics</title>
     <style>
-        body { font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; background-color: #f0f0f0; margin: 0; }
-        h1 { color: #333; }
-        #status { font-size: 1em; margin-bottom: 20px; padding: 10px; border-radius: 5px; }
-        .status-disconnected { background-color: #ffcdd2; color: #c62828; }
-        .status-connected { background-color: #c8e6c9; color: #2e7d32; }
-        .controls { display: flex; gap: 20px; }
-        button {
-            width: 150px;
-            height: 80px;
-            font-size: 1.5em;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            color: white;
-            transition: transform 0.1s;
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #fff;
+            --border-color: #444;
+            --status-connected-color: #4CAF50;
+            --status-disconnected-color: #F44336;
         }
-        button:active { transform: scale(0.95); }
-        #prevBtn { background-color: #42A5F5; } /* Azul */
-        #nextBtn { background-color: #66BB6A; } /* Verde */
+        html, body {
+            height: 100%;
+            margin: 0;
+            overflow: hidden;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            touch-action: manipulation; /* Evita zoom com duplo toque em mobile */
+        }
+        .main-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            height: calc(100% - 30px); /* Desconta a altura da barra de status */
+            padding: 5vmin;
+            box-sizing: border-box;
+            gap: 5vmin;
+        }
+        .control-button {
+            flex: 1;
+            width: 100%;
+            height: 100%;
+            background-color: #333;
+            border: 2px solid var(--border-color);
+            border-radius: 20px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            -webkit-tap-highlight-color: transparent; /* Remove o brilho ao tocar em mobile */
+        }
+        .control-button:active {
+             background-color: #555;
+        }
+        .control-button svg {
+            width: 40%;
+            height: 40%;
+            fill: var(--text-color);
+        }
+        #status-bar {
+            text-align: center;
+            padding: 0.5em;
+            font-size: 1.5vmin;
+            position: fixed;
+            bottom: 0;
+            width: 100%;
+            height: 30px;
+            box-sizing: border-box;
+            background-color: var(--bg-color);
+        }
+        .status-connected { color: var(--status-connected-color); }
+        .status-disconnected { color: var(--status-disconnected-color); }
     </style>
 </head>
 <body>
-    <h1>Controle de Mídia Holyrics</h1>
-    <div id="status" class="status-disconnected">Desconectado</div>
 
-    <div class="controls">
-        <button id="prevBtn">Anterior</button>
-        <button id="nextBtn">Próximo</button>
+    <div class="main-container">
+        <button id="prevBtn" class="control-button" title="Anterior">
+            <svg viewBox="0 0 24 24"><path d="M15.41 7.41L14 6l-6 6 6 6 1.41-1.41L10.83 12z"/></svg>
+        </button>
+        <button id="nextBtn" class="control-button" title="Próximo">
+            <svg viewBox="0 0 24 24"><path d="M8.59 16.59L10 18l6-6-6-6-1.41 1.41L13.17 12z"/></svg>
+        </button>
     </div>
 
-    <script>
-        // IMPORTANTE: Substitua 'localhost' pelo IP ou domínio do seu servidor.
-        const SERVER_URL = 'ws://localhost:8080';
+    <div id="status-bar" class="status-disconnected">Desconectado</div>
 
+    <script>
+        // Use o hostname da página para se conectar. Garante que funcione em qualquer IP da rede.
+        const SERVER_URL = `ws://${window.location.hostname}:8080`;
+
+        // Elementos da UI
         const prevButton = document.getElementById('prevBtn');
         const nextButton = document.getElementById('nextBtn');
-        const statusDiv = document.getElementById('status');
+        const statusBar = document.getElementById('status-bar');
+        
         let ws;
 
         function connect() {
             ws = new WebSocket(SERVER_URL);
 
-            ws.onopen = function() {
-                console.log('Conectado ao servidor!');
-                statusDiv.textContent = 'Conectado';
-                statusDiv.className = 'status-connected';
+            ws.onopen = () => {
+                statusBar.textContent = 'Conectado';
+                statusBar.className = 'status-connected';
+                console.log('Conectado ao servidor WebSocket.');
             };
 
-            ws.onmessage = function(event) {
-                console.log('Mensagem recebida do servidor (provavelmente de outro cliente):', event.data);
-                // Não precisa fazer nada aqui, o frontend só envia comandos.
+            // A lógica de receber mensagens foi removida, pois o módulo não envia mais o estado.
+            ws.onmessage = (event) => {
+                console.log('Mensagem recebida (inesperada):', event.data);
             };
 
-            ws.onclose = function() {
-                console.log('Desconectado do servidor. Tentando reconectar em 3 segundos...');
-                statusDiv.textContent = 'Desconectado - Tentando reconectar...';
-                statusDiv.className = 'status-disconnected';
-                setTimeout(connect, 3000); // Tenta reconectar
+            ws.onclose = () => {
+                statusBar.textContent = 'Desconectado - Tentando reconectar...';
+                statusBar.className = 'status-disconnected';
+                // Tenta reconectar a cada 3 segundos em caso de perda de conexão.
+                setTimeout(connect, 3000);
             };
 
-            ws.onerror = function(error) {
+            ws.onerror = (error) => {
                 console.error('Erro no WebSocket:', error);
-                ws.close(); // Isso vai acionar o 'onclose' para tentar reconectar.
+                ws.close(); // Força o onclose para disparar a reconexão.
             };
         }
 
-        prevButton.addEventListener('click', () => {
+        /**
+         * Envia um comando de navegação para o servidor WebSocket.
+         * @param {string} direction - 'next' ou 'previous'.
+         */
+        function sendNavigationCommand(direction) {
             if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send('PREV_SLIDE');
-                console.log('Comando PREV_SLIDE enviado.');
+                const command = {
+                    type: 'NAVIGATION_COMMAND',
+                    direction: direction
+                };
+                ws.send(JSON.stringify(command));
+                console.log(`Comando enviado: ${direction}`);
             } else {
-                console.log('Não conectado para enviar comando.');
+                console.warn('Tentativa de enviar comando sem conexão WebSocket ativa.');
+            }
+        }
+        
+        // --- Event Listeners ---
+
+        // Adiciona listeners para os botões de controle
+        prevButton.addEventListener('click', () => sendNavigationCommand('previous'));
+        nextButton.addEventListener('click', () => sendNavigationCommand('next'));
+
+        // Adiciona listeners para as teclas de seta do teclado
+        window.addEventListener('keydown', function(event) {
+            switch (event.key) {
+                case 'ArrowRight':
+                case 'ArrowDown':
+                case ' ': // Adiciona a barra de espaço para avançar
+                    sendNavigationCommand('next');
+                    event.preventDefault(); 
+                    break;
+                case 'ArrowLeft':
+                case 'ArrowUp':
+                    sendNavigationCommand('previous');
+                    event.preventDefault();
+                    break;
             }
         });
 
-        nextButton.addEventListener('click', () => {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.send('NEXT_SLIDE');
-                console.log('Comando NEXT_SLIDE enviado.');
-            } else {
-                console.log('Não conectado para enviar comando.');
-            }
-        });
-
-        // Inicia a primeira tentativa de conexão
+        // Inicia a conexão ao carregar a página
         connect();
     </script>
     <script>
-        // Registra o Service Worker
+        // Registra o Service Worker (se existir) para funcionalidades PWA (Progressive Web App)
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js').then(registration => {
-                    console.log('Service Worker registrado com sucesso:', registration);
-                }).catch(registrationError => {
-                    console.log('Falha ao registrar o Service Worker:', registrationError);
+                navigator.serviceWorker.register('/sw.js').catch(err => {
+                    console.error('Falha ao registrar o Service Worker:', err);
                 });
             });
         }
